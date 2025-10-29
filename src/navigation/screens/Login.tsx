@@ -20,6 +20,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigators/RootStackNavigator";
+import { loginSchema, type LoginFormData } from "../../utils/validation/authSchemas";
+import { API_URL } from "@env";
 
 type LoginProps = NativeStackScreenProps<RootStackParamList, "Login">;
 
@@ -29,6 +31,7 @@ export default function Login({ navigation }: LoginProps) {
   const [pw, setPw] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<keyof LoginFormData, string>>>({});
 
   const disabled = loading || !email || !pw;
 
@@ -68,9 +71,10 @@ export default function Login({ navigation }: LoginProps) {
       height: 48,
       justifyContent: "center",
       borderRadius: 12,
-      backgroundColor: disabled
-        ? theme.colors.surfaceVariant
-        : theme.colors.primary,
+    },
+    btnLabel: {
+      color: theme.colors.onPrimary,
+      fontFamily: "Inter_400Regular",
     },
     socialBtn: {
       height: 44,
@@ -85,14 +89,50 @@ export default function Login({ navigation }: LoginProps) {
     },
     onSurface: { color: theme.colors.onSurface },
     footer: { alignItems: "center", marginTop: 24 },
+    error: { 
+      color: theme.colors.error, 
+      fontSize: 12, 
+      marginTop: 4,
+      fontFamily: "Inter_400Regular",
+    },
   });
 
   const handleLogin = async () => {
+    // Clear previous errors
+    setErrors({});
+
+    // Validate with Zod
+    const result = loginSchema.safeParse({ email, password: pw });
+    
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof LoginFormData, string>> = {};
+      result.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          fieldErrors[err.path[0] as keyof LoginFormData] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
+      return;
+    }
+
     setLoading(true);
-    setTimeout(() => {
+    
+    try {
+      // Example API call (uncomment when ready)
+      // const response = await fetch(`${API_URL}/auth/login`, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(result.data),
+      // });
+      
+      setTimeout(() => {
+        setLoading(false);
+        // navigation.replace("MainApp");
+      }, 800);
+    } catch (error) {
       setLoading(false);
-      // navigation.replace("MainApp");
-    }, 800);
+      console.error('Login error:', error);
+    }
   };
 
   return (
@@ -142,20 +182,31 @@ export default function Login({ navigation }: LoginProps) {
                 mode="outlined"
                 label="Email"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  if (errors.email) setErrors({ ...errors, email: undefined });
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
                 left={<PaperInput.Icon icon="email" />}
                 placeholder="you@family.com"
+                placeholderTextColor={theme.colors.onSurfaceVariant + "66"}
                 style={{ borderRadius: 12 }}
+                error={!!errors.email}
               />
+              {errors.email && <Text style={styles.error}>{errors.email}</Text>}
+              
               <View style={styles.inputSpacer} />
+              
               <PaperInput
                 mode="outlined"
                 label="Password"
                 value={pw}
-                onChangeText={setPw}
+                onChangeText={(text) => {
+                  setPw(text);
+                  if (errors.password) setErrors({ ...errors, password: undefined });
+                }}
                 secureTextEntry={!showPw}
                 autoCapitalize="none"
                 autoComplete="password"
@@ -167,8 +218,12 @@ export default function Login({ navigation }: LoginProps) {
                   />
                 }
                 placeholder="••••••••"
+                placeholderTextColor={theme.colors.onSurfaceVariant + "66"}
                 style={{ borderRadius: 12 }}
+                error={!!errors.password}
               />
+              {errors.password && <Text style={styles.error}>{errors.password}</Text>}
+              
               <View
                 style={{
                   alignItems: "flex-end",
@@ -194,6 +249,8 @@ export default function Login({ navigation }: LoginProps) {
                 loading={loading}
                 disabled={disabled}
                 style={styles.btn}
+                labelStyle={styles.btnLabel}
+                buttonColor={disabled ? theme.colors.surfaceVariant : theme.colors.primary}
               >
                 Sign in
               </Button>
@@ -238,7 +295,7 @@ export default function Login({ navigation }: LoginProps) {
               {/* Footer */}
               <View style={styles.footer}>
                 <Text variant="bodyMedium" style={styles.sub}>
-                  Don’t have an account?{" "}
+                  Don't have an account?{" "}
                   <Text
                     onPress={() => navigation.navigate("Signup")}
                     style={styles.link}

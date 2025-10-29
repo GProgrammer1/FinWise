@@ -21,6 +21,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigators/RootStackNavigator";
+import { signupSchema, type SignupFormData } from "../../utils/validation/authSchemas";
+import { API_URL } from "@env";
 
 type SignupProps = NativeStackScreenProps<RootStackParamList, "Signup">;
 
@@ -35,14 +37,13 @@ export default function Signup({ navigation }: SignupProps) {
   const [showCpw, setShowCpw] = useState(false);
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<keyof SignupFormData, string>>>({});
 
-  const pwMatch = !cpw || pw === cpw;
   const valid =
     name.trim().length > 0 &&
     email.trim().length > 0 &&
     pw.length >= 1 &&
     cpw.length >= 1 &&
-    pwMatch &&
     agree &&
     !loading;
 
@@ -82,10 +83,10 @@ export default function Signup({ navigation }: SignupProps) {
       height: 48,
       justifyContent: "center",
       borderRadius: 12,
-      backgroundColor: valid
-        ? theme.colors.primary
-        : theme.colors.surfaceVariant,
-      opacity: valid ? 1 : 0.6,
+    },
+    btnLabel: {
+      color: theme.colors.onPrimary,
+      fontFamily: "Inter_400Regular",
     },
     socialBtn: { height: 44, justifyContent: "center", borderRadius: 12 },
     divider: { height: 1, backgroundColor: theme.colors.outline + "33" },
@@ -95,18 +96,58 @@ export default function Signup({ navigation }: SignupProps) {
       textAlign: "center",
     },
     onSurface: { color: theme.colors.onSurface },
-    error: { color: theme.colors.error, marginTop: 6 },
+    error: { 
+      color: theme.colors.error, 
+      fontSize: 12, 
+      marginTop: 4,
+      fontFamily: "Inter_400Regular",
+    },
     footer: { alignItems: "center", marginTop: 24 },
     termsRow: { flexDirection: "row", alignItems: "center" },
   });
 
   const handleSignup = async () => {
-    if (!valid) return;
+    // Clear previous errors
+    setErrors({});
+
+    // Validate with Zod
+    const result = signupSchema.safeParse({
+      name,
+      email,
+      password: pw,
+      confirmPassword: cpw,
+      agreeToTerms: agree,
+    });
+
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof SignupFormData, string>> = {};
+      result.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          fieldErrors[err.path[0] as keyof SignupFormData] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
+      return;
+    }
+
     setLoading(true);
-    setTimeout(() => {
+
+    try {
+      // Example API call (uncomment when ready)
+      // const response = await fetch(`${API_URL}/auth/signup`, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(result.data),
+      // });
+
+      setTimeout(() => {
+        setLoading(false);
+        // navigation.replace("MainApp");
+      }, 800);
+    } catch (error) {
       setLoading(false);
-      // navigation.replace("MainApp");
-    }, 800);
+      console.error('Signup error:', error);
+    }
   };
 
   return (
@@ -159,13 +200,19 @@ export default function Signup({ navigation }: SignupProps) {
                 mode="outlined"
                 label="Full name"
                 value={name}
-                onChangeText={setName}
+                onChangeText={(text) => {
+                  setName(text);
+                  if (errors.name) setErrors({ ...errors, name: undefined });
+                }}
                 autoCapitalize="words"
                 autoComplete="name"
                 left={<PaperInput.Icon icon="account" />}
                 placeholder="e.g. Layal Barakat"
+                placeholderTextColor={theme.colors.onSurfaceVariant + "66"}
                 style={{ borderRadius: 12 }}
+                error={!!errors.name}
               />
+              {errors.name && <Text style={styles.error}>{errors.name}</Text>}
               <View style={styles.v16} />
 
               {/* Email */}
@@ -173,14 +220,20 @@ export default function Signup({ navigation }: SignupProps) {
                 mode="outlined"
                 label="Email"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  if (errors.email) setErrors({ ...errors, email: undefined });
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
                 left={<PaperInput.Icon icon="email" />}
                 placeholder="you@family.com"
+                placeholderTextColor={theme.colors.onSurfaceVariant + "66"}
                 style={{ borderRadius: 12 }}
+                error={!!errors.email}
               />
+              {errors.email && <Text style={styles.error}>{errors.email}</Text>}
               <View style={styles.v16} />
 
               {/* Password */}
@@ -188,7 +241,10 @@ export default function Signup({ navigation }: SignupProps) {
                 mode="outlined"
                 label="Password"
                 value={pw}
-                onChangeText={setPw}
+                onChangeText={(text) => {
+                  setPw(text);
+                  if (errors.password) setErrors({ ...errors, password: undefined });
+                }}
                 secureTextEntry={!showPw}
                 autoCapitalize="none"
                 autoComplete="password-new"
@@ -200,8 +256,11 @@ export default function Signup({ navigation }: SignupProps) {
                   />
                 }
                 placeholder="••••••••"
+                placeholderTextColor={theme.colors.onSurfaceVariant + "66"}
                 style={{ borderRadius: 12 }}
+                error={!!errors.password}
               />
+              {errors.password && <Text style={styles.error}>{errors.password}</Text>}
               <View style={styles.v16} />
 
               {/* Confirm password */}
@@ -209,7 +268,11 @@ export default function Signup({ navigation }: SignupProps) {
                 mode="outlined"
                 label="Confirm password"
                 value={cpw}
-                onChangeText={setCpw}
+                onChangeText={(text) => {
+                  setCpw(text);
+                  if (errors.confirmPassword) 
+                    setErrors({ ...errors, confirmPassword: undefined });
+                }}
                 secureTextEntry={!showCpw}
                 autoCapitalize="none"
                 autoComplete="password-new"
@@ -221,13 +284,12 @@ export default function Signup({ navigation }: SignupProps) {
                   />
                 }
                 placeholder="••••••••"
+                placeholderTextColor={theme.colors.onSurfaceVariant + "66"}
                 style={{ borderRadius: 12 }}
-                error={!!cpw && !pwMatch}
+                error={!!errors.confirmPassword}
               />
-              {!pwMatch && (
-                <Text variant="labelSmall" style={styles.error}>
-                  Passwords don’t match
-                </Text>
+              {errors.confirmPassword && (
+                <Text style={styles.error}>{errors.confirmPassword}</Text>
               )}
               <View style={styles.v16} />
 
@@ -235,7 +297,11 @@ export default function Signup({ navigation }: SignupProps) {
               <View style={styles.termsRow}>
                 <Checkbox
                   status={agree ? "checked" : "unchecked"}
-                  onPress={() => setAgree((a) => !a)}
+                  onPress={() => {
+                    setAgree((a) => !a);
+                    if (errors.agreeToTerms) 
+                      setErrors({ ...errors, agreeToTerms: undefined });
+                  }}
                 />
                 <Text
                   variant="bodyMedium"
@@ -246,6 +312,11 @@ export default function Signup({ navigation }: SignupProps) {
                   <Text style={styles.link}>Privacy Policy</Text>.
                 </Text>
               </View>
+              {errors.agreeToTerms && (
+                <Text style={[styles.error, { marginLeft: 8 }]}>
+                  {errors.agreeToTerms}
+                </Text>
+              )}
 
               {/* Sign up */}
               <View style={styles.v16} />
@@ -256,6 +327,8 @@ export default function Signup({ navigation }: SignupProps) {
                 loading={loading}
                 disabled={!valid}
                 style={styles.btn}
+                labelStyle={styles.btnLabel}
+                buttonColor={valid ? theme.colors.primary : theme.colors.surfaceVariant}
               >
                 Create account
               </Button>
