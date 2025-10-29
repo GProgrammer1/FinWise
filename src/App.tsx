@@ -1,7 +1,8 @@
 // App.tsx
 import React, { useEffect } from "react";
-import { Text, useColorScheme } from "react-native";
+import { useColorScheme } from "react-native";
 import { PaperProvider } from "react-native-paper";
+import { NavigationContainer } from "@react-navigation/native";
 import * as SplashScreen from "expo-splash-screen";
 import {
   useFonts,
@@ -11,8 +12,7 @@ import {
 } from "@expo-google-fonts/inter";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { darkTheme, lightTheme } from "./theme/theme";
-import IntroSlides from "./navigation/screens/IntroSlides";
-
+import RootStackNavigator from "./navigation/navigators/RootStackNavigator";
 
 SplashScreen.preventAutoHideAsync(); // keep splash until fonts are ready
 
@@ -37,8 +37,9 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <PaperProvider theme={theme}>
-        <IntroSlides onDone={() => {}
-        }/>
+        <NavigationContainer>
+          <RootStackNavigator />
+        </NavigationContainer>
       </PaperProvider>
     </SafeAreaProvider>
   );

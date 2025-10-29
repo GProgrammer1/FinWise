@@ -1,8 +1,11 @@
-import React, { useRef } from "react";
-import { View, Dimensions, StatusBar } from "react-native";
-import { Surface, Text, useTheme } from "react-native-paper";
+import React, { useRef, useState } from "react";
+import { View, Dimensions, StatusBar, TouchableOpacity } from "react-native";
+import { Text, useTheme } from "react-native-paper";
 import AppIntroSlider from "react-native-app-intro-slider";
 import LottieView from "lottie-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../navigators/RootStackNavigator";
 import "../../ui/Paper";
 import {
   SafeAreaView,
@@ -45,14 +48,36 @@ const slides: Slide[] = [
   },
 ];
 
-interface IntroSlidesProps {
-  onDone: () => void;
-}
+type IntroSlidesProps = NativeStackScreenProps<
+  RootStackParamList,
+  "IntroSlides"
+>;
 
-export default function IntroSlides({ onDone }: IntroSlidesProps) {
+const INTRO_SEEN_KEY = "@finwise_intro_seen";
+
+export default function IntroSlides({ navigation }: IntroSlidesProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const sliderRef = useRef<AppIntroSlider>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const handleDone = async () => {
+    try {
+      await AsyncStorage.setItem(INTRO_SEEN_KEY, "true");
+      console.log(navigation);
+
+      navigation.replace("Login");
+    } catch (error) {
+      console.error("Error saving intro status:", error);
+      navigation.replace("Login");
+    }
+  };
+
+  const goToNextSlide = () => {
+    if (activeIndex < slides.length - 1) {
+      sliderRef.current?.goToSlide(activeIndex + 1);
+    }
+  };
 
   const renderItem = ({ item }: { item: Slide }) => {
     return (
@@ -195,14 +220,15 @@ export default function IntroSlides({ onDone }: IntroSlidesProps) {
         ref={sliderRef}
         renderItem={renderItem}
         data={slides}
-        onDone={onDone}
-        onSkip={onDone}
+        onDone={handleDone}
+        onSkip={handleDone}
+        onSlideChange={setActiveIndex}
         showSkipButton
         renderNextButton={renderNextButton}
         renderDoneButton={renderDoneButton}
         renderSkipButton={renderSkipButton}
         // Ensure the slider itself has your background (prevents white gutters)
-        renderPagination={(activeIndex) => (
+        renderPagination={(paginationActiveIndex) => (
           <View
             // custom pagination to keep perfectly in sync & respect safe area
             style={{
@@ -217,7 +243,7 @@ export default function IntroSlides({ onDone }: IntroSlidesProps) {
             {/* dots */}
             <View style={{ flexDirection: "row", marginBottom: 12 }}>
               {slides.map((_, i) => {
-                const active = i === activeIndex;
+                const active = i === paginationActiveIndex;
                 return (
                   <View
                     key={i}
@@ -239,14 +265,22 @@ export default function IntroSlides({ onDone }: IntroSlidesProps) {
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
             >
-              {activeIndex < slides.length - 1 ? (
-                renderSkipButton()
+              {paginationActiveIndex < slides.length - 1 ? (
+                <TouchableOpacity onPress={handleDone}>
+                  {renderSkipButton()}
+                </TouchableOpacity>
               ) : (
                 <View style={{ width: 68 }} />
               )}
-              {activeIndex < slides.length - 1
-                ? renderNextButton()
-                : renderDoneButton()}
+              {paginationActiveIndex < slides.length - 1 ? (
+                <TouchableOpacity onPress={goToNextSlide}>
+                  {renderNextButton()}
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity onPress={handleDone}>
+                  {renderDoneButton()}
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         )}
