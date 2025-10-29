@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Light theme (matches your Paper MD3 light theme) */
+:root {
+  --color-primary: #16a34a;
+  --color-on-primary: #ffffff;
+
+  --color-secondary: #0ea5e9;
+  --color-tertiary: #8b5cf6;
+
+  --color-background: #0f1623;
+  --color-on-background: #e5e7eb;
+
+  --color-surface: #101825;
+  --color-on-surface: #e5e7eb;
+
+  --color-outline: #94a3b8;
+
+  --color-error: #ef4444;
+}
+
+/* Dark theme overrides (switch automatically with system) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primary: #16a34a;
+    --color-on-primary: #ffffff;
+
+    --color-secondary: #0ea5e9;
+    --color-tertiary: #8b5cf6;
+
+    --color-background: #0b0f14;
+    --color-on-background: #e5e7eb;
+
+    --color-surface: #101825;
+    --color-on-surface: #e5e7eb;
+
+    --color-outline: #94a3b8;
+
+    --color-error: #ef4444;
+  }
+}
