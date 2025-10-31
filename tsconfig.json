@@ -3,5 +3,11 @@
   "compilerOptions": {
     "moduleResolution": "bundler",
     "strict": true
-  }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/__tests__/**/*.ts",
+    "**/__tests__/**/*.tsx"
+  ]
 }

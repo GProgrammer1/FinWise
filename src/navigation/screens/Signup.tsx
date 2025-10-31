@@ -21,7 +21,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigators/RootStackNavigator";
-import { signupSchema, type SignupFormData } from "../../utils/validation/authSchemas";
+import {
+  signupSchema,
+  type SignupFormData,
+} from "../../utils/validation/authSchemas";
 import { API_URL } from "@env";
 
 type SignupProps = NativeStackScreenProps<RootStackParamList, "Signup">;
@@ -37,7 +40,9 @@ export default function Signup({ navigation }: SignupProps) {
   const [showCpw, setShowCpw] = useState(false);
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<keyof SignupFormData, string>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof SignupFormData, string>>
+  >({});
 
   const valid =
     name.trim().length > 0 &&
@@ -96,9 +101,9 @@ export default function Signup({ navigation }: SignupProps) {
       textAlign: "center",
     },
     onSurface: { color: theme.colors.onSurface },
-    error: { 
-      color: theme.colors.error, 
-      fontSize: 12, 
+    error: {
+      color: theme.colors.error,
+      fontSize: 12,
       marginTop: 4,
       fontFamily: "Inter_400Regular",
     },
@@ -121,7 +126,7 @@ export default function Signup({ navigation }: SignupProps) {
 
     if (!result.success) {
       const fieldErrors: Partial<Record<keyof SignupFormData, string>> = {};
-      result.error.errors.forEach((err) => {
+      result.error.issues.forEach((err) => {
         if (err.path[0]) {
           fieldErrors[err.path[0] as keyof SignupFormData] = err.message;
         }
@@ -146,7 +151,7 @@ export default function Signup({ navigation }: SignupProps) {
       }, 800);
     } catch (error) {
       setLoading(false);
-      console.error('Signup error:', error);
+      console.error("Signup error:", error);
     }
   };
 
@@ -243,7 +248,8 @@ export default function Signup({ navigation }: SignupProps) {
                 value={pw}
                 onChangeText={(text) => {
                   setPw(text);
-                  if (errors.password) setErrors({ ...errors, password: undefined });
+                  if (errors.password)
+                    setErrors({ ...errors, password: undefined });
                 }}
                 secureTextEntry={!showPw}
                 autoCapitalize="none"
@@ -260,7 +266,9 @@ export default function Signup({ navigation }: SignupProps) {
                 style={{ borderRadius: 12 }}
                 error={!!errors.password}
               />
-              {errors.password && <Text style={styles.error}>{errors.password}</Text>}
+              {errors.password && (
+                <Text style={styles.error}>{errors.password}</Text>
+              )}
               <View style={styles.v16} />
 
               {/* Confirm password */}
@@ -270,7 +278,7 @@ export default function Signup({ navigation }: SignupProps) {
                 value={cpw}
                 onChangeText={(text) => {
                   setCpw(text);
-                  if (errors.confirmPassword) 
+                  if (errors.confirmPassword)
                     setErrors({ ...errors, confirmPassword: undefined });
                 }}
                 secureTextEntry={!showCpw}
@@ -299,7 +307,7 @@ export default function Signup({ navigation }: SignupProps) {
                   status={agree ? "checked" : "unchecked"}
                   onPress={() => {
                     setAgree((a) => !a);
-                    if (errors.agreeToTerms) 
+                    if (errors.agreeToTerms)
                       setErrors({ ...errors, agreeToTerms: undefined });
                   }}
                 />
@@ -328,7 +336,9 @@ export default function Signup({ navigation }: SignupProps) {
                 disabled={!valid}
                 style={styles.btn}
                 labelStyle={styles.btnLabel}
-                buttonColor={valid ? theme.colors.primary : theme.colors.surfaceVariant}
+                buttonColor={
+                  valid ? theme.colors.primary : theme.colors.surfaceVariant
+                }
               >
                 Create account
               </Button>

@@ -20,7 +20,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigators/RootStackNavigator";
-import { loginSchema, type LoginFormData } from "../../utils/validation/authSchemas";
+import {
+  loginSchema,
+  type LoginFormData,
+} from "../../utils/validation/authSchemas";
 import { API_URL } from "@env";
 
 type LoginProps = NativeStackScreenProps<RootStackParamList, "Login">;
@@ -31,7 +34,9 @@ export default function Login({ navigation }: LoginProps) {
   const [pw, setPw] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<keyof LoginFormData, string>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof LoginFormData, string>>
+  >({});
 
   const disabled = loading || !email || !pw;
 
@@ -89,9 +94,9 @@ export default function Login({ navigation }: LoginProps) {
     },
     onSurface: { color: theme.colors.onSurface },
     footer: { alignItems: "center", marginTop: 24 },
-    error: { 
-      color: theme.colors.error, 
-      fontSize: 12, 
+    error: {
+      color: theme.colors.error,
+      fontSize: 12,
       marginTop: 4,
       fontFamily: "Inter_400Regular",
     },
@@ -103,10 +108,10 @@ export default function Login({ navigation }: LoginProps) {
 
     // Validate with Zod
     const result = loginSchema.safeParse({ email, password: pw });
-    
+
     if (!result.success) {
       const fieldErrors: Partial<Record<keyof LoginFormData, string>> = {};
-      result.error.errors.forEach((err) => {
+      result.error.issues.forEach((err) => {
         if (err.path[0]) {
           fieldErrors[err.path[0] as keyof LoginFormData] = err.message;
         }
@@ -116,7 +121,7 @@ export default function Login({ navigation }: LoginProps) {
     }
 
     setLoading(true);
-    
+
     try {
       // Example API call (uncomment when ready)
       // const response = await fetch(`${API_URL}/auth/login`, {
@@ -124,14 +129,14 @@ export default function Login({ navigation }: LoginProps) {
       //   headers: { 'Content-Type': 'application/json' },
       //   body: JSON.stringify(result.data),
       // });
-      
+
       setTimeout(() => {
         setLoading(false);
         // navigation.replace("MainApp");
       }, 800);
     } catch (error) {
       setLoading(false);
-      console.error('Login error:', error);
+      console.error("Login error:", error);
     }
   };
 
@@ -196,16 +201,17 @@ export default function Login({ navigation }: LoginProps) {
                 error={!!errors.email}
               />
               {errors.email && <Text style={styles.error}>{errors.email}</Text>}
-              
+
               <View style={styles.inputSpacer} />
-              
+
               <PaperInput
                 mode="outlined"
                 label="Password"
                 value={pw}
                 onChangeText={(text) => {
                   setPw(text);
-                  if (errors.password) setErrors({ ...errors, password: undefined });
+                  if (errors.password)
+                    setErrors({ ...errors, password: undefined });
                 }}
                 secureTextEntry={!showPw}
                 autoCapitalize="none"
@@ -222,8 +228,10 @@ export default function Login({ navigation }: LoginProps) {
                 style={{ borderRadius: 12 }}
                 error={!!errors.password}
               />
-              {errors.password && <Text style={styles.error}>{errors.password}</Text>}
-              
+              {errors.password && (
+                <Text style={styles.error}>{errors.password}</Text>
+              )}
+
               <View
                 style={{
                   alignItems: "flex-end",
@@ -250,7 +258,9 @@ export default function Login({ navigation }: LoginProps) {
                 disabled={disabled}
                 style={styles.btn}
                 labelStyle={styles.btnLabel}
-                buttonColor={disabled ? theme.colors.surfaceVariant : theme.colors.primary}
+                buttonColor={
+                  disabled ? theme.colors.surfaceVariant : theme.colors.primary
+                }
               >
                 Sign in
               </Button>
