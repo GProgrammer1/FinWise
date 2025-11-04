@@ -24,7 +24,7 @@ import {
   loginSchema,
   type LoginFormData,
 } from "../../utils/validation/authSchemas";
-import { API_URL } from "@env";
+import { AuthService } from "../../services/authService";
 
 type LoginProps = NativeStackScreenProps<RootStackParamList, "Login">;
 
@@ -123,20 +123,22 @@ export default function Login({ navigation }: LoginProps) {
     setLoading(true);
 
     try {
-      // Example API call (uncomment when ready)
-      // const response = await fetch(`${API_URL}/auth/login`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(result.data),
-      // });
-
-      setTimeout(() => {
-        setLoading(false);
+      const response = await AuthService.login(result.data);
+      
+      if (response.success && response.data) {
+        // Tokens are automatically stored by AuthService
+        // TODO: Navigate to main app when available
         // navigation.replace("MainApp");
-      }, 800);
-    } catch (error) {
+        console.log("Login successful");
+      } else {
+        setErrors({ password: response.message || "Login failed" });
+      }
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.message || "Invalid email or password";
+      setErrors({ password: errorMessage });
+    } finally {
       setLoading(false);
-      console.error("Login error:", error);
     }
   };
 
@@ -240,9 +242,7 @@ export default function Login({ navigation }: LoginProps) {
                 }}
               >
                 <TouchableOpacity
-                  onPress={() => {
-                    /* navigation.navigate("ForgotPassword") */
-                  }}
+                  onPress={() => navigation.navigate("ForgotPassword")}
                 >
                   <Text variant="labelLarge" style={styles.link}>
                     Forgot password?

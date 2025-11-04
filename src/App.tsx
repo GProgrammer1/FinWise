@@ -13,6 +13,7 @@ import {
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { darkTheme, lightTheme } from "./theme/theme";
 import RootStackNavigator from "./navigation/navigators/RootStackNavigator";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 SplashScreen.preventAutoHideAsync(); // keep splash until fonts are ready
 
@@ -28,6 +29,20 @@ export default function App() {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
     }
+
+    // Log token presence in AsyncStorage
+    const checkTokens = async () => {
+      const accessToken = await AsyncStorage.getItem("accessToken");
+      const refreshToken = await AsyncStorage.getItem("refreshToken");
+
+      console.log("[App] Token check:");
+      console.log("[App] Access token present:", accessToken ? "YES" : "NO");
+      console.log("[App] Access token length:", accessToken?.length || 0);
+      console.log("[App] Refresh token present:", refreshToken ? "YES" : "NO");
+      console.log("[App] Refresh token length:", refreshToken?.length || 0);
+    };
+
+    checkTokens();
   }, [fontsLoaded, fontError]);
 
   if (!fontsLoaded && !fontError) return null;

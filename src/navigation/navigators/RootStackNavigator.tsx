@@ -4,11 +4,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import IntroSlides from "../screens/IntroSlides";
 import Login from "../screens/Login";
 import Signup from "../screens/Signup";
+import ForgotPassword from "../screens/ForgotPassword";
+import ResetPassword from "../screens/ResetPassword";
 
 export type RootStackParamList = {
   IntroSlides: undefined;
   Login: undefined;
   Signup: undefined;
+  ForgotPassword: undefined;
+  ResetPassword: { token: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -48,6 +52,8 @@ export default function RootStackNavigator() {
       <Stack.Screen name="IntroSlides" component={IntroSlides} />
       <Stack.Screen name="Login" component={Login} />
       <Stack.Screen name="Signup" component={Signup} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+      <Stack.Screen name="ResetPassword" component={ResetPassword} />
     </Stack.Navigator>
   );
 }

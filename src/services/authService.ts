@@ -3,7 +3,8 @@ import { API_URL } from "@env";
 import { ApiClient } from "../api/ApiClient";
 import type {
   LoginFormData,
-  SignupFormData,
+  SignupStep1FormData,
+  SignupStep2ParentFormData,
 } from "../utils/validation/authSchemas";
 
 // Request types
@@ -13,11 +14,17 @@ export interface LoginRequest {
 }
 
 export interface SignupRequest {
+  role: "PARENT" | "CHILD";
   name: string;
   email: string;
   password: string;
-  confirmPassword?: string; // Remove before sending
-  agreeToTerms?: boolean; // Remove before sending
+  // PARENT only fields
+  country?: string;
+  numberOfChildren?: number;
+  monthlyIncomeBase?: number;
+  monthlyRentBase?: number;
+  monthlyLoansBase?: number;
+  otherNotes?: string;
 }
 
 export interface RefreshTokenRequest {
@@ -94,10 +101,23 @@ export class AuthService {
 
     // Store tokens if login successful
     if (response.data.success && response.data.data) {
+      console.log(
+        "[AuthService] Login successful - Storing tokens in AsyncStorage"
+      );
       await AsyncStorage.setItem("accessToken", response.data.data.accessToken);
       await AsyncStorage.setItem(
         "refreshToken",
         response.data.data.refreshToken
+      );
+      console.log(
+        "[AuthService] Access token stored (length:",
+        response.data.data.accessToken.length,
+        ")"
+      );
+      console.log(
+        "[AuthService] Refresh token stored (length:",
+        response.data.data.refreshToken.length,
+        ")"
       );
     }
 
@@ -106,26 +126,92 @@ export class AuthService {
 
   /**
    * Register a new user
+   * Supports multipart/form-data for PARENT role with ID image upload
    */
-  static async signup(data: SignupFormData): Promise<AuthResponse> {
-    // Remove confirmPassword and agreeToTerms before sending
-    const { confirmPassword, agreeToTerms, ...signupData } = data;
+  static async signup(
+    step1Data: SignupStep1FormData,
+    step2Data?: SignupStep2ParentFormData,
+    idImage?: { uri: string; type: string; name: string }
+  ): Promise<AuthResponse> {
+    // Combine step 1 and step 2 data
+    const signupData: SignupRequest = {
+      role: step1Data.role,
+      name: step1Data.name,
+      email: step1Data.email,
+      password: step1Data.password,
+      ...(step2Data || {}),
+    };
 
-    const response = await this.api.post<AuthResponse>(
-      `${this.BASE_PATH}/signup`,
-      signupData
+    // Create FormData for multipart/form-data
+    const formData = new FormData();
+
+    // Add all signup data fields
+    Object.entries(signupData).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (typeof value === "number") {
+          formData.append(key, value.toString());
+        } else {
+          formData.append(key, value);
+        }
+      }
+    });
+
+    // Add ID image if provided (required for PARENT role)
+    if (idImage && step1Data.role === "PARENT") {
+      // React Native FormData requires file object with uri, type, and name
+      // Note: In React Native, uri can be a local file path (file://) or a remote URL
+      formData.append("idImage", {
+        uri: idImage.uri,
+        type: idImage.type || "image/jpeg",
+        name: idImage.name || "id-image.jpg",
+      } as any);
+    }
+
+    // Use axios directly for multipart/form-data (bypass ApiClient which sets JSON header)
+    const axios = (await import("axios")).default;
+
+    const token = await AsyncStorage.getItem("accessToken");
+    const headers: any = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    // For React Native FormData, axios needs special handling
+    // Don't set Content-Type - FormData will set it with the correct boundary
+    const response = await axios.post(
+      `${API_URL}${this.BASE_PATH}/signup`,
+      formData,
+      {
+        headers,
+        // Important: Don't transform FormData - let it be sent as-is
+        transformRequest: [],
+      }
     );
 
     // Store tokens if signup successful
-    if (response.data.success && response.data.data) {
-      await AsyncStorage.setItem("accessToken", response.data.data.accessToken);
+    const responseData = response.data as AuthResponse;
+    if (responseData.success && responseData.data) {
+      console.log(
+        "[AuthService] Signup successful - Storing tokens in AsyncStorage"
+      );
+      await AsyncStorage.setItem("accessToken", responseData.data.accessToken);
       await AsyncStorage.setItem(
         "refreshToken",
-        response.data.data.refreshToken
+        responseData.data.refreshToken
+      );
+      console.log(
+        "[AuthService] Access token stored (length:",
+        responseData.data.accessToken.length,
+        ")"
+      );
+      console.log(
+        "[AuthService] Refresh token stored (length:",
+        responseData.data.refreshToken.length,
+        ")"
       );
     }
 
-    return response.data;
+    return responseData;
   }
 
   /**
@@ -136,7 +222,14 @@ export class AuthService {
   ): Promise<RefreshTokenResponse> {
     const token = refreshToken || (await AsyncStorage.getItem("refreshToken"));
 
+    console.log("[AuthService] Refresh token check:");
+    console.log("[AuthService] Refresh token present:", token ? "YES" : "NO");
+    if (token) {
+      console.log("[AuthService] Refresh token length:", token.length);
+    }
+
     if (!token) {
+      console.error("[AuthService] No refresh token available");
       throw new Error("No refresh token available");
     }
 
@@ -147,7 +240,15 @@ export class AuthService {
 
     // Update stored access token if refresh successful
     if (response.data.success && response.data.data) {
+      console.log(
+        "[AuthService] Token refresh successful - Storing new access token"
+      );
       await AsyncStorage.setItem("accessToken", response.data.data.accessToken);
+      console.log(
+        "[AuthService] New access token stored (length:",
+        response.data.data.accessToken.length,
+        ")"
+      );
     }
 
     return response.data;
@@ -164,12 +265,18 @@ export class AuthService {
       );
 
       // Clear tokens regardless of API response
+      console.log("[AuthService] Logout - Clearing tokens from AsyncStorage");
       await AsyncStorage.multiRemove(["accessToken", "refreshToken"]);
+      console.log("[AuthService] Tokens cleared");
 
       return response.data;
     } catch (error) {
       // Even if API call fails, clear local tokens
+      console.log(
+        "[AuthService] Logout error - Clearing tokens from AsyncStorage"
+      );
       await AsyncStorage.multiRemove(["accessToken", "refreshToken"]);
+      console.log("[AuthService] Tokens cleared after error");
       throw error;
     }
   }
@@ -278,6 +385,13 @@ export class AuthService {
    */
   static async isAuthenticated(): Promise<boolean> {
     const token = await AsyncStorage.getItem("accessToken");
+    const refreshToken = await AsyncStorage.getItem("refreshToken");
+    console.log("[AuthService] isAuthenticated check:");
+    console.log("[AuthService] Access token present:", token ? "YES" : "NO");
+    console.log(
+      "[AuthService] Refresh token present:",
+      refreshToken ? "YES" : "NO"
+    );
     return !!token;
   }
 
@@ -292,13 +406,29 @@ export class AuthService {
    * Get stored access token
    */
   static async getAccessToken(): Promise<string | null> {
-    return await AsyncStorage.getItem("accessToken");
+    const token = await AsyncStorage.getItem("accessToken");
+    console.log(
+      "[AuthService] getAccessToken - Token present:",
+      token ? "YES" : "NO"
+    );
+    if (token) {
+      console.log("[AuthService] Access token length:", token.length);
+    }
+    return token;
   }
 
   /**
    * Get stored refresh token
    */
   static async getRefreshToken(): Promise<string | null> {
-    return await AsyncStorage.getItem("refreshToken");
+    const token = await AsyncStorage.getItem("refreshToken");
+    console.log(
+      "[AuthService] getRefreshToken - Token present:",
+      token ? "YES" : "NO"
+    );
+    if (token) {
+      console.log("[AuthService] Refresh token length:", token.length);
+    }
+    return token;
   }
 }

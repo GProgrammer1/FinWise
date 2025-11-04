@@ -1,5 +1,5 @@
 import * as SQLite from "expo-sqlite";
-import NetInfo from "@react-native-community/netinfo";
+import * as Network from "expo-network";
 import { ApiClient } from "../api/ApiClient";
 
 export interface QueuedRequest {
@@ -14,6 +14,7 @@ export interface QueuedRequest {
 export class OfflineQueueManager {
   private static db: SQLite.SQLiteDatabase;
   private static flushing = false;
+  private static networkStateSubscription: { remove: () => void } | null = null;
 
   // open database
   static async init() {
@@ -30,13 +31,20 @@ export class OfflineQueueManager {
     `);
 
     // monitor connectivity
-    NetInfo.addEventListener((state) => {
+    this.networkStateSubscription = Network.addNetworkStateListener((state) => {
       if (state.isConnected && state.isInternetReachable) {
         OfflineQueueManager.flush();
       }
     });
 
     console.log("[OfflineQueue] initialized");
+  }
+
+  static stopConnectivityMonitoring() {
+    if (this.networkStateSubscription) {
+      this.networkStateSubscription.remove();
+      this.networkStateSubscription = null;
+    }
   }
 
   static async enqueue(req: Omit<QueuedRequest, "id">) {

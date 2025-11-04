@@ -1,7 +1,7 @@
 import { API_URL } from "@env";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios, { AxiosError, AxiosInstance } from "axios";
-import NetInfo from "@react-native-community/netinfo";
+import * as Network from "expo-network";
 import { OfflineQueueManager } from "../network/OfflineQueueManager";
 
 export class ApiClient {
@@ -20,8 +20,12 @@ export class ApiClient {
       ApiClient.instance.interceptors.request.use(async (config) => {
         //attach access token to auth header
         const token = await AsyncStorage.getItem("accessToken");
+        console.log("[ApiClient] Request interceptor - Access token present:", token ? "YES" : "NO");
         if (token) {
+          console.log("[ApiClient] Adding Authorization header with token (length:", token.length, ")");
           config.headers.Authorization = `Bearer ${token}`;
+        } else {
+          console.log("[ApiClient] No access token available for request to:", config.url);
         }
         return config;
       });
@@ -36,13 +40,20 @@ export class ApiClient {
             originalRequest._retry = true;
             try {
               const refreshToken = await AsyncStorage.getItem("refreshToken");
-              if (!refreshToken) throw new Error("No refresh token found");
+              console.log("[ApiClient] 401 error - Refresh token present:", refreshToken ? "YES" : "NO");
+              if (!refreshToken) {
+                console.error("[ApiClient] No refresh token found in AsyncStorage");
+                throw new Error("No refresh token found");
+              }
+              console.log("[ApiClient] Attempting to refresh access token with refresh token (length:", refreshToken.length, ")");
 
               const refreshRes = await axios.post(`${API_URL}/auth/refresh`, {
                 refreshToken,
               });
               const { accessToken } = refreshRes.data.data;
+              console.log("[ApiClient] Token refresh successful - New access token length:", accessToken?.length || 0);
               await AsyncStorage.setItem("accessToken", accessToken);
+              console.log("[ApiClient] New access token stored in AsyncStorage");
 
               // retry original
               originalRequest.headers.Authorization = `Bearer ${accessToken}`;
@@ -56,13 +67,25 @@ export class ApiClient {
           }
 
           // Network error: if request is write, queue it into device local db to flush back when connectivity is back
-          const net = await NetInfo.fetch();
+          let isConnected = true;
+          try {
+            const net = await Network.getNetworkStateAsync();
+            isConnected = !!(net.isConnected && net.isInternetReachable);
+          } catch (networkError) {
+            // Network not available - assume connected
+            console.warn(
+              "[ApiClient] Network state not available, assuming connected:",
+              networkError
+            );
+            isConnected = true;
+          }
+
           const isWrite = ["post", "put", "patch", "delete"].includes(
             (originalRequest.method || "").toLowerCase()
           );
 
           // Offline -> write requests to queue
-          if (isWrite && (!net.isConnected || !net.isInternetReachable)) {
+          if (isWrite && !isConnected) {
             await OfflineQueueManager.enqueue({
               method: originalRequest.method!,
               url: originalRequest.url!,

@@ -1,6 +1,6 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import NetInfo from "@react-native-community/netinfo";
+import * as Network from "expo-network";
 import { ApiClient } from "../ApiClient";
 import { OfflineQueueManager } from "../../network/OfflineQueueManager";
 import { API_URL } from "@env";
@@ -8,7 +8,7 @@ import { API_URL } from "@env";
 // Mock all dependencies
 jest.mock("axios");
 jest.mock("@react-native-async-storage/async-storage");
-jest.mock("@react-native-community/netinfo");
+jest.mock("expo-network");
 jest.mock("../../network/OfflineQueueManager");
 
 const mockedAxios = axios as unknown as {
@@ -23,8 +23,8 @@ const mockedAsyncStorage = AsyncStorage as unknown as {
   multiRemove: jest.Mock;
 };
 
-const mockedNetInfo = NetInfo as unknown as {
-  fetch: jest.Mock;
+const mockedNetwork = Network as unknown as {
+  getNetworkStateAsync: jest.Mock;
 };
 
 const mockedOfflineQueueManager = OfflineQueueManager as unknown as {
@@ -95,8 +95,8 @@ describe("ApiClient", () => {
     mockedAsyncStorage.setItem = jest.fn(() => Promise.resolve());
     mockedAsyncStorage.multiRemove = jest.fn(() => Promise.resolve());
 
-    // Default NetInfo mocks
-    mockedNetInfo.fetch = jest.fn(() =>
+    // Default Network mocks
+    mockedNetwork.getNetworkStateAsync = jest.fn(() =>
       Promise.resolve({
         isConnected: true,
         isInternetReachable: true,
@@ -347,14 +347,14 @@ describe("ApiClient", () => {
         config: originalRequest,
       } as AxiosError;
 
-      mockedNetInfo.fetch = jest.fn().mockResolvedValueOnce({
+      mockedNetwork.getNetworkStateAsync = jest.fn().mockResolvedValueOnce({
         isConnected: false,
         isInternetReachable: false,
       });
 
       const result = await responseInterceptorOnRejected(error);
 
-      expect(mockedNetInfo.fetch).toHaveBeenCalled();
+      expect(mockedNetwork.getNetworkStateAsync).toHaveBeenCalled();
       expect(mockedOfflineQueueManager.enqueue).toHaveBeenCalledWith({
         method: "POST",
         url: "/api/data",
@@ -381,7 +381,7 @@ describe("ApiClient", () => {
         config: originalRequest,
       } as AxiosError;
 
-      mockedNetInfo.fetch = jest.fn().mockResolvedValueOnce({
+      mockedNetwork.getNetworkStateAsync = jest.fn().mockResolvedValueOnce({
         isConnected: false,
         isInternetReachable: false,
       });
@@ -403,7 +403,7 @@ describe("ApiClient", () => {
         config: originalRequest,
       } as AxiosError;
 
-      mockedNetInfo.fetch = jest.fn().mockResolvedValueOnce({
+      mockedNetwork.getNetworkStateAsync = jest.fn().mockResolvedValueOnce({
         isConnected: false,
         isInternetReachable: false,
       });
@@ -424,7 +424,7 @@ describe("ApiClient", () => {
         config: originalRequest,
       } as AxiosError;
 
-      mockedNetInfo.fetch = jest.fn().mockResolvedValueOnce({
+      mockedNetwork.getNetworkStateAsync = jest.fn().mockResolvedValueOnce({
         isConnected: false,
         isInternetReachable: false,
       });
@@ -445,7 +445,7 @@ describe("ApiClient", () => {
         config: originalRequest,
       } as AxiosError;
 
-      mockedNetInfo.fetch = jest.fn().mockResolvedValueOnce({
+      mockedNetwork.getNetworkStateAsync = jest.fn().mockResolvedValueOnce({
         isConnected: false,
         isInternetReachable: false,
       });
@@ -467,7 +467,7 @@ describe("ApiClient", () => {
         config: originalRequest,
       } as AxiosError;
 
-      mockedNetInfo.fetch = jest.fn().mockResolvedValueOnce({
+      mockedNetwork.getNetworkStateAsync = jest.fn().mockResolvedValueOnce({
         isConnected: true,
         isInternetReachable: true,
       });
@@ -488,7 +488,7 @@ describe("ApiClient", () => {
         config: originalRequest,
       } as AxiosError;
 
-      mockedNetInfo.fetch = jest.fn().mockResolvedValueOnce({
+      mockedNetwork.getNetworkStateAsync = jest.fn().mockResolvedValueOnce({
         isConnected: false,
         isInternetReachable: false,
       });
@@ -510,7 +510,7 @@ describe("ApiClient", () => {
       ApiClient.getInstance();
       mockAxiosInstance.request.mockClear();
       mockAxiosInstance.request.mockReset();
-      mockedNetInfo.fetch.mockResolvedValue({
+      mockedNetwork.getNetworkStateAsync.mockResolvedValue({
         isConnected: true,
         isInternetReachable: true,
       });
@@ -732,7 +732,7 @@ describe("ApiClient", () => {
         config: originalRequest,
       } as AxiosError;
 
-      mockedNetInfo.fetch = jest.fn().mockResolvedValueOnce({
+      mockedNetwork.getNetworkStateAsync = jest.fn().mockResolvedValueOnce({
         isConnected: true,
         isInternetReachable: true,
       });

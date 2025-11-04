@@ -5,15 +5,17 @@ jest.mock("@react-native-async-storage/async-storage", () =>
   require("@react-native-async-storage/async-storage/jest/async-storage-mock")
 );
 
-// Mock NetInfo
-jest.mock("@react-native-community/netinfo", () => ({
-  fetch: jest.fn(() =>
+// Mock expo-network
+jest.mock("expo-network", () => ({
+  getNetworkStateAsync: jest.fn(() =>
     Promise.resolve({
       isConnected: true,
       isInternetReachable: true,
     })
   ),
-  addEventListener: jest.fn(),
+  addNetworkStateListener: jest.fn(() => ({
+    remove: jest.fn(),
+  })),
 }));
 
 // Mock OfflineQueueManager
